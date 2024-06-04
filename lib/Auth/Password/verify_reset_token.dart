@@ -4,87 +4,70 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'package:pin_code_text_field/pin_code_text_field.dart';
+
 import 'package:http/http.dart' as http;
-import 'package:rent_straight_landlord/Auth/SignUp/select_user_type.dart';
-import 'package:rent_straight_landlord/Components/keyboard_utils.dart';
-import 'package:rent_straight_landlord/HomeScreen/home_screen.dart';
+import 'package:rent_straight_landlord/Auth/Password/models/verify_pasword_token_model.dart';
+import 'package:rent_straight_landlord/Auth/Password/reset_password.dart';
 import 'package:rent_straight_landlord/constants.dart';
 
-import 'models/verify_email_model.dart';
 
-
-Future<VerifyEmailModel> verify_email(String email_token) async {
-  var token = await getApiPref();
-
-
+Future<VerifyResetTokenModel> verifyResetToken(String email, String token) async {
 
   final response = await http.post(
-    Uri.parse(hostName + "email/verify-token/"),
+    Uri.parse(hostName + "verify-reset-token"),
     headers: <String, String>{
       'Content-Type': 'application/json; charset=UTF-8',
-      'Accept': 'application/json',
-      'Authorization': 'Bearer '  + token.toString()
-
+      'Accept': 'application/json'
     },
     body: jsonEncode({
-      "token": email_token,
+      "email": email,
+      "token": token,
     }),
   );
 
 
-  if (response.statusCode == 200) {
+  if (response.statusCode == 201 || response.statusCode == 200) {
     print(jsonDecode(response.body));
-    final result = json.decode(response.body);
-
-    return VerifyEmailModel.fromJson(jsonDecode(response.body));
+    return VerifyResetTokenModel.fromJson(jsonDecode(response.body));
   } else if (response.statusCode == 422) {
     print(jsonDecode(response.body));
-    return VerifyEmailModel.fromJson(jsonDecode(response.body));
+    return VerifyResetTokenModel.fromJson(jsonDecode(response.body));
   }  else if (response.statusCode == 403) {
     print(jsonDecode(response.body));
-    return VerifyEmailModel.fromJson(jsonDecode(response.body));
-  }   else if (response.statusCode == 400) {
-    print(jsonDecode(response.body));
-    return VerifyEmailModel.fromJson(jsonDecode(response.body));
+    return VerifyResetTokenModel.fromJson(jsonDecode(response.body));
   }  else {
-
-    throw Exception('Failed to Load data');
+    print(jsonDecode(response.body));
+    throw Exception('Failed to load data');
   }
 }
 
-class EmailVerification extends StatefulWidget {
-  final full_name;
-  final username;
+
+class VerifyResetToken extends StatefulWidget {
+
   final email;
-  final contact_number;
 
-  const EmailVerification({super.key,
 
-    required this.full_name,
-    required this.username,
+  const VerifyResetToken({super.key,
     required this.email,
-    required this.contact_number,
-
   });
 
   @override
-  State<EmailVerification> createState() => _EmailVerificationState();
+  State<VerifyResetToken> createState() => _VerifyResetTokenState();
 }
 
-class _EmailVerificationState extends State<EmailVerification> with SingleTickerProviderStateMixin {
+class _VerifyResetTokenState extends State<VerifyResetToken> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   final _formKey = GlobalKey<FormState>();
   var show_password = false;
   bool hasError = false;
-  bool _isLoading = false; // Add a boolean flag to track loading state
-
 
   String email_token = "";
   TextEditingController controller = TextEditingController(text: "");
-  Future<VerifyEmailModel>? _futureVerifyEmail;
-  String? token;
+
+  Future<VerifyResetTokenModel>? _futureVerifyReset;
 
 
   @override
@@ -94,25 +77,21 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
       duration: Duration(seconds: 1),
       vsync: this,
     )..repeat();
-
-
-
   }
 
-
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
 
   @override
   Widget build(BuildContext context) {
-    return (_futureVerifyEmail == null) ? buildColumn() : buildFutureBuilder(context);
+    return (_futureVerifyReset == null) ? buildColumn() : buildFutureBuilder();
   }
 
-
-
-
-
-
-  buildColumn(){
+  buildColumn (){
     return Scaffold(
       body: SafeArea(
         child: Container(
@@ -138,11 +117,11 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.full_name +",", style: TextStyle(fontSize: 36, fontFamily: "MontserratAlternates", fontWeight: FontWeight.w500, height: 1.2),),
+                        Text("Verify Reset Token", style: TextStyle(fontSize: 36, fontFamily: "MontserratAlternates", fontWeight: FontWeight.w500, height: 1.2),),
                         SizedBox(
                           height: 15,
                         ),
-                        Text("Verify your account", style: TextStyle(fontSize: 20, fontFamily: "MontserratAlternates",  fontWeight: FontWeight.w500, height: 1.1)),
+                        Text("Enter the reset token here", style: TextStyle(fontSize: 20, fontFamily: "MontserratAlternates",  fontWeight: FontWeight.w500, height: 1.1)),
                       ],
                     ),
                   ),
@@ -162,7 +141,7 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 10),
                                   child:Form(
-                                    key: _formKey,
+                                    //key: _formKey,
                                     child: Container(
                                       width: MediaQuery.of(context).size.width,
                                       //color: Colors.red,
@@ -174,13 +153,9 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
                                           ),
                                           Expanded(
                                             child: Row(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              mainAxisSize: MainAxisSize.max,
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
                                               children: [
-                                                SizedBox(
-                                                  width: 20,
-                                                ),
                                                 Expanded(
                                                   child: PinCodeTextField(
                                                     autofocus: true,
@@ -196,7 +171,7 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
                                                     pinBoxColor: Colors.white.withOpacity(0.3),
                                                     pinBoxRadius: 10,
                                                     keyboardType: TextInputType.text,
-                                                    maxLength:4,
+                                                    maxLength:6,
                                                     //maskCharacter: "😎",
                                                     onTextChanged: (text) {
                                                       setState(() {
@@ -208,8 +183,8 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
                                                       print("DONE CONTROLLER ${controller.text}");
                                                       email_token=text.toString();
                                                     },
-                                                    pinBoxWidth: 70,
-                                                    pinBoxHeight: 70,
+                                                    pinBoxWidth: 51,
+                                                    pinBoxHeight: 51,
                                                     //hasUnderline: true,
                                                     wrapAlignment: WrapAlignment.spaceAround,
                                                     pinBoxDecoration: ProvidedPinBoxDecoration
@@ -224,7 +199,6 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
                                                     highlightAnimationEndColor: Colors.white12,
                                                   ),
                                                 ),
-
                                               ],
                                             ),
                                           )
@@ -238,53 +212,13 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
                                 SizedBox(
                                   height: 30,
                                 ),
+
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 20),
+
                                   child: InkWell(
-                                    onTap: () async {
-                                      // Show the loading dialog
-                                      _showLoadingDialogModal(context);
-
-                                      // Get the token
-                                      var token = await getApiPref();
-
-                                      if (token == null) {
-                                        print('Token is null');
-                                        Navigator.pop(context); // Close the loading dialog
-                                        // Show an error message to the user
-                                        return;
-                                      }
-
-                                      const String url = hostName + 'email/resend-verification-token';
-                                      final Map<String, String> headers = {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': 'Bearer $token',
-                                      };
-
-                                      try {
-                                        final response = await http.post(
-                                          Uri.parse(url),
-                                          headers: headers,
-                                        );
-
-                                        Navigator.pop(context); // Close the loading dialog
-
-                                        if (response.statusCode == 200 || response.statusCode == 201) {
-                                          // Handle success response
-                                          print('OTP resent successfully.');
-                                          // Show a success message to the user
-                                          _showSuccessDialogModal2(context, "OTP resent successfully");
-                                        } else {
-                                          // Handle error response
-                                          print('Failed to resend OTP. Error: ${response.body}');
-                                          // Show an error message to the user
-                                        }
-                                      } catch (e) {
-                                        Navigator.pop(context); // Close the loading dialog
-                                        // Handle network error
-                                        print('Network error: $e');
-                                        // Show a network error message to the user
-                                      }
+                                    onTap: () {
+                                      //Navigator.of(context).push(MaterialPageRoute(builder: (BuildContext context) => UploadPhoto(full_name: widget.full_name)));
                                     },
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.start,
@@ -296,15 +230,14 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
                                         Text(
                                           "Resend OTP",
                                           style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.blue, // Replace rentPrimary with actual color
-                                          ),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600, color: rentPrimary),
                                         ),
                                       ],
                                     ),
                                   ),
                                 ),
+
                                 SizedBox(
                                   height: 30,
                                 ),
@@ -315,25 +248,14 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
                                   child: InkWell(
                                     onTap: () {
 
-                                               if (_formKey.currentState!.validate()) {
-                                        _formKey.currentState!.save();
-                                        KeyboardUtil.hideKeyboard(context);
 
-                                        _futureVerifyEmail = verify_email(email_token);
+                                      setState(() {
+                                        _futureVerifyReset = verifyResetToken(widget.email!, email_token);
+
+                                      });
 
 
-                                      }
 
-                                     /* _showLoadingDialogModal(context);
-
-                                      Timer(
-                                          Duration(seconds: 4),
-                                              () {
-                                            Navigator.of(context).pop();
-                                            _showSuccessDialogModal(context);
-                                          }
-                                      );
-*/
 
                                     },
                                     child: Container(
@@ -373,81 +295,80 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
   }
 
 
-  FutureBuilder<VerifyEmailModel> buildFutureBuilder(context) {
-
-    return FutureBuilder<VerifyEmailModel>(
-        future: _futureVerifyEmail,
+  FutureBuilder<VerifyResetTokenModel> buildFutureBuilder() {
+    return FutureBuilder<VerifyResetTokenModel>(
+        future: _futureVerifyReset,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting && !_isLoading) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _showLoadingDialogModal(context);
             });
           }
-          if(snapshot.hasData) {
+          else if(snapshot.hasData) {
 
             var data = snapshot.data!;
 
             print("#########################");
             //print(data.data!.token!);
-            print(data.message);
 
-            if(data.message == "Email verified successfully") {
+
+            if(data.message == "Reset token verified successfully") {
+
 
               WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                _showSuccessDialogModal(context, "Your code has been verified !");
 
-          /*      Future.delayed(Duration(milliseconds: 500), () {
-
-
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => HomeScreen()),
-                        (route) => false,
-                  );
-                });*/
-              });
-
-
-            }
-            else if (data.message == "Invalid Request.") {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                Navigator.pop(context);
-                //Navigator.pop(context);
-                //Navigator.pop(context);
-
-                _showErrorDialogModal(context, data );
+                _showSuccessDialogModal(context);
 
                 setState(() {
-
-                  _futureVerifyEmail = null; // Reset _futureSignIn here
+                  _futureVerifyReset = null; // Reset _futureSignIn here
                 });
+
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) =>
+                        ResetPasswordScreen(
+                            email: widget.email, token: email_token)),
+                  );
+                });
+
+
+
+
+
+
+
+            }
+
+            else {
+              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+
+                _showErrorDialogModal(context, data);
+
+                setState(() {
+                  _futureVerifyReset = null; // Reset _futureSignIn here
+                });
+
+
+
 
               });
 
-            }else {
-              //_showErrorDialogModal(context, "Failed to load data");
             }
+
+
 
           }
 
-
-
-
           return Scaffold(
-            body: Container(),
+            body:Container(),
           );
+
 
         }
     );
   }
 
-
-  @override
-  void dispose() {
-    _controller.dispose(); // Dispose of the AnimationController
-    super.dispose();
-  }
 
 
   void _showLoadingDialogModal(BuildContext context) {
@@ -475,7 +396,7 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
                   height: 20,
                 ),
 
-                Text("is confirming your verification code", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, height: 1.2),),
+                Text("is verifying token", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, height: 1.2),),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -489,129 +410,6 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showSuccessDialogModal(BuildContext context, message) {
-    showModalBottomSheet(
-      context: context,
-        isDismissible: false,
-      builder: (BuildContext context) {
-        return SingleChildScrollView(
-          child: Container(
-            padding: EdgeInsets.all(15),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Image.asset("assets/images/rent_logo.png"),
-                    SizedBox(
-                      width: 10,
-                    ),
-
-                    Text("RentStraight", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w500, height: 1.2),),
-
-
-                  ],
-                ),
-                SizedBox(
-                  height: 20,
-                ),
-
-                Text(message, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, height: 1.2),),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 55,),
-                  ],
-                ),
-                InkWell(
-                  onTap: () {
-
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => SelectUserType(full_name: widget.full_name)),
-                          (route) => false,
-                    );
-
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: EdgeInsets.all(10),
-                          //margin: EdgeInsets.all(10),
-                          height: 59,
-                          width: MediaQuery.of(context).size.width,
-                          decoration: BoxDecoration(
-                              color: Colors.transparent,
-                              borderRadius: BorderRadius.circular(15)),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                "Continue",
-                                style: TextStyle(color: rentPrimary),
-                              ),
-                              Icon(Icons.arrow_forward_rounded, color: rentPrimary,)
-
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-
-  void _showSuccessDialogModal2(BuildContext context, message) {
-    showModalBottomSheet(
-      context: context,
-      //isDismissible: false,
-      builder: (BuildContext context) {
-        return SingleChildScrollView(
-          child: Container(
-            padding: EdgeInsets.all(15),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Image.asset("assets/images/rent_logo.png"),
-                    SizedBox(
-                      width: 10,
-
-                    ),
-
-                    Text("RentStraight", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w500, height: 1.2),),
-
-
-                  ],
-                ),
-                SizedBox(
-                  height: 20,
-                ),
-
-                Text(message, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, height: 1.2),),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 55,),
-                  ],
-                ),
 
               ],
             ),
@@ -621,12 +419,18 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
     );
   }
 
-  void _showErrorDialogModal(BuildContext context, VerifyEmailModel model) {
+  void _showErrorDialogModal(BuildContext context, VerifyResetTokenModel model) {
     List<Widget> errorWidgets = [];
     if (model.errors != null) {
+      if (model.errors!.email != null) {
+        model.errors!.email!.forEach((error) {
+          errorWidgets.add(Text(error));
+        });
+      }
+
       if (model.errors!.token != null) {
         model.errors!.token!.forEach((error) {
-          errorWidgets.add(Text(error, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w500, height: 1.2),));
+          errorWidgets.add(Text(error));
         });
       }
     }
@@ -674,5 +478,54 @@ class _EmailVerificationState extends State<EmailVerification> with SingleTicker
   }
 
 
+  void _showSuccessDialogModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SingleChildScrollView(
+          child: Container(
+            padding: EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              /*      image: DecorationImage(
+                image: AssetImage("assets/images/sprinkles.png"),
+                fit: BoxFit.cover
+              )*/
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Image.asset("assets/images/rent_logo.png"),
+                    SizedBox(
+                      width: 10,
+                    ),
+
+                    Text("RentStraight", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w500, height: 1.2),),
+
+
+                  ],
+                ),
+                SizedBox(
+                  height: 20,
+                ),
+
+                Text("Code Verified", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w500, height: 1.2),),
+                SizedBox(
+                  height: 20,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 55,),
+                  ],
+                ),
+
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
 }

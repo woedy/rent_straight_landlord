@@ -1,10 +1,10 @@
-class VerifyEmailModel {
+class ResetPasswordModel {
   Errors? errors;
   String? message;
 
-  VerifyEmailModel({this.errors, this.message});
+  ResetPasswordModel({ this.errors, this.message});
 
-  VerifyEmailModel.fromJson(Map<String, dynamic> json) {
+  ResetPasswordModel.fromJson(Map<String, dynamic> json) {
     errors =
     json['errors'] != null ? new Errors.fromJson(json['errors']) : null;
     message = json['message'];
@@ -23,18 +23,29 @@ class VerifyEmailModel {
 
 
 class Errors {
+  List<String>? password;
+  List<String>? email;
   List<String>? token;
 
-
-  Errors({this.token,});
+  Errors(
+      {
+        this.password,
+        this.email,
+        this.token,
+ });
 
   Errors.fromJson(Map<String, dynamic> json) {
+    password = json['password'].cast<String>();
+    email = json['email'].cast<String>();
     token = json['token'].cast<String>();
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['password'] = this.password;
+    data['email'] = this.email;
     data['token'] = this.token;
     return data;
   }
 }
+

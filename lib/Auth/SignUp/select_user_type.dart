@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:rent_straight_landlord/Auth/SignUp/password.dart';
+import 'package:rent_straight_landlord/Auth/SignUp/subscription.dart';
 import 'package:rent_straight_landlord/Auth/SignUp/upload_card.dart';
 import 'package:rent_straight_landlord/Components/photos/select_photo_options_screen.dart';
 import 'package:rent_straight_landlord/constants.dart';
@@ -123,11 +124,9 @@ class _SelectUserTypeState extends State<SelectUserType> with SingleTickerProvid
                                 Expanded(
                                   child: InkWell(
                                     onTap: (){
-                                      Navigator.push(context, MaterialPageRoute(builder: (context) => PasswordScreen(
+                                      Navigator.push(context, MaterialPageRoute(builder: (context) => Subscription(
                                         full_name: widget.full_name,
-                                          username: "username",
-                                          email: "email",
-                                          contact_number: "phone"
+
 
                                       )));
                                     },
@@ -174,13 +173,14 @@ class _SelectUserTypeState extends State<SelectUserType> with SingleTickerProvid
                                 Expanded(
                                   child: InkWell(
                                     onTap: (){
-                                      Navigator.push(context, MaterialPageRoute(builder: (context) => PasswordScreen(
-                                          full_name: widget.full_name,
-                                          username: "username",
-                                          email: "email",
-                                          contact_number: "phone"
 
-                                      )));
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text("Unavailable at the moment.",),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+
                                     },
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,

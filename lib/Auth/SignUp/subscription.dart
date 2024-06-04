@@ -233,7 +233,7 @@ class _SubscriptionState extends State<Subscription> with SingleTickerProviderSt
                   InkWell(
                     onTap: () {
 
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => SubscriptionCard(full_name: "full_name")));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => SubscriptionCard(full_name: widget.full_name)));
 
 
                     },

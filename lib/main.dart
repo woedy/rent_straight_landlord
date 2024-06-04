@@ -67,10 +67,10 @@ class _MyHomePageState extends State<MyHomePage> {
         future: _user_api,
         builder: (BuildContext context, AsyncSnapshot snapshot) {
 
-          //return api_key == null ? SplashScreen() : HomeScreen();
+          return api_key == null ? SplashScreen() : HomeScreen();
           //return SplashScreen();
           //return SubscriptionCard(full_name: "Deladem Pingship",);
-          return SplashScreen();
+          //return SelectUserType(full_name: "Sama",);
 
         });
   }

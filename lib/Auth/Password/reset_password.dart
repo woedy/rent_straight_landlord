@@ -4,31 +4,26 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:rent_straight_landlord/Auth/SignIn/sign_in_screen.dart';
-import 'package:rent_straight_landlord/Auth/SignUp/email_verification.dart';
-import 'package:rent_straight_landlord/Auth/SignUp/models/sign_up_model.dart';
-import 'package:rent_straight_landlord/Auth/SignUp/sign_up_screen.dart';
-import 'package:rent_straight_landlord/Components/keyboard_utils.dart';
-import 'package:rent_straight_landlord/constants.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:http/http.dart' as http;
+import 'package:rent_straight_landlord/Auth/Password/models/reset_password_model.dart';
+import 'package:rent_straight_landlord/Auth/SignIn/sign_in_screen.dart';
+import 'package:rent_straight_landlord/Components/keyboard_utils.dart';
+import 'package:rent_straight_landlord/constants.dart';
 
 
 
-Future<SignUpModel> signUpUser(String full_name, String username, String email, String contact_number, String password, String password_confirmation) async {
+Future<ResetPasswordModel> resetPassword(String email, String token, String password, String password_confirmation) async {
 
   final response = await http.post(
-    Uri.parse(hostName + "register"),
+    Uri.parse(hostName + "reset-password"),
     headers: <String, String>{
       'Content-Type': 'application/json; charset=UTF-8',
       'Accept': 'application/json'
     },
     body: jsonEncode({
-      "full_name": full_name,
-      "username": username,
       "email": email,
-      "phone_number": contact_number,
+      "token": token,
       "password": password,
       "password_confirmation": password_confirmation,
     }),
@@ -37,23 +32,15 @@ Future<SignUpModel> signUpUser(String full_name, String username, String email, 
 
   if (response.statusCode == 201) {
     print(jsonDecode(response.body));
-    final result = json.decode(response.body);
-    if (result != null) {
 
-      print(result['data']['token']);
-
-      await saveIDApiKey(result['data']['token'].toString());
-      await saveUserData(result['data']);
-
-
-    }
-    return SignUpModel.fromJson(jsonDecode(response.body));
+    return ResetPasswordModel.fromJson(jsonDecode(response.body));
   } else if (response.statusCode == 422) {
+
     print(jsonDecode(response.body));
-    return SignUpModel.fromJson(jsonDecode(response.body));
+    return ResetPasswordModel.fromJson(jsonDecode(response.body));
   }  else if (response.statusCode == 403) {
     print(jsonDecode(response.body));
-    return SignUpModel.fromJson(jsonDecode(response.body));
+    return ResetPasswordModel.fromJson(jsonDecode(response.body));
   }  else {
     print(jsonDecode(response.body));
     throw Exception('Failed to Sign Up');
@@ -61,24 +48,18 @@ Future<SignUpModel> signUpUser(String full_name, String username, String email, 
 }
 
 
-Future<void> saveUserData(Map<String, dynamic> userData) async {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  prefs.setString('user_data', json.encode(userData));
-}
+class ResetPasswordScreen extends StatefulWidget {
 
-class PasswordScreen extends StatefulWidget {
-  final full_name;
-  final username;
   final email;
-  final contact_number;
+  final token;
 
-  const PasswordScreen({super.key, required this.full_name, this.username, this.email, required this.contact_number});
+  const ResetPasswordScreen({super.key, required this.email, required this.token});
 
   @override
-  State<PasswordScreen> createState() => _PasswordScreenState();
+  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
-class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProviderStateMixin {
+class _ResetPasswordScreenState extends State<ResetPasswordScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
 
   //Future<SignInModel>? _futureSignIn;
@@ -90,7 +71,7 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
 
   late AnimationController _controller;
 
-  Future<SignUpModel>? _futureSignUp;
+  Future<ResetPasswordModel>? _futureResetPassword;
 
 
 
@@ -116,7 +97,7 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    return (_futureSignUp == null) ? buildColumn() : buildFutureBuilder();
+    return (_futureResetPassword == null) ? buildColumn() : buildFutureBuilder();
   }
 
 
@@ -147,12 +128,12 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.full_name + ", ", style: TextStyle(fontSize: 36, fontFamily: "MontserratAlternates", fontWeight: FontWeight.w500, height: 1.2),),
+                        Text("Reset Password", style: TextStyle(fontSize: 36, fontFamily: "MontserratAlternates", fontWeight: FontWeight.w500, height: 1.2),),
                         SizedBox(
                           height: 15,
                         ),
 
-                        Text("Protect your account", style: TextStyle(fontSize: 20, fontFamily: "MontserratAlternates",  fontWeight: FontWeight.w500, height: 1.1)),
+                        Text("Enter your new Password", style: TextStyle(fontSize: 20, fontFamily: "MontserratAlternates",  fontWeight: FontWeight.w500, height: 1.1)),
                       ],
                     ),
                   ),
@@ -349,18 +330,13 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
                                         KeyboardUtil.hideKeyboard(context);
 
 
-                                        print(widget.full_name);
-                                        print(widget.username);
                                         print(widget.email);
-                                        print(widget.contact_number);
                                         print(password);
                                         print(password_confirmation);
 
-                                        _futureSignUp = signUpUser(
-                                          widget.full_name,
-                                          widget.username,
+                                        _futureResetPassword = resetPassword(
                                           widget.email,
-                                          widget.contact_number,
+                                          widget.token,
                                           password.toString(),
                                           password_confirmation.toString(),
                                         );
@@ -402,7 +378,7 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
                                           borderRadius: BorderRadius.circular(15)),
                                       child: Center(
                                         child: Text(
-                                          "Set up Account",
+                                          "Reset Password",
                                           style: TextStyle(color: Colors.white),
                                         ),
                                       ),
@@ -431,9 +407,9 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
   }
 
 
-  FutureBuilder<SignUpModel> buildFutureBuilder() {
-    return FutureBuilder<SignUpModel>(
-        future: _futureSignUp,
+  FutureBuilder<ResetPasswordModel> buildFutureBuilder() {
+    return FutureBuilder<ResetPasswordModel>(
+        future: _futureResetPassword,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -448,7 +424,7 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
             //print(data.data!.token!);
 
 
-            if(data.message == "Registration successful") {
+            if(data.message == "Password reset successful") {
 
 
               WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -457,39 +433,17 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
 
 
                 setState(() {
-                  _futureSignUp = null; // Reset _futureSignIn here
+                  _futureResetPassword = null; // Reset _futureSignIn here
                 });
 
 
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => EmailVerification(
-                    full_name: widget.full_name,
-
-                    username: widget.username,
-                    email: widget.email,
-                    contact_number: widget.contact_number,
-                  )),
+                  MaterialPageRoute(builder: (context) => SignInScreen()),
                 );
 
-             /*   setState(() {
-                  _futureSignUp = null; // Reset _futureSignIn here
-                });
-*/
 
-
-
-
-/*
-                showDialog(
-                    barrierDismissible: true,
-                    context: context,
-                    builder: (BuildContext context) {
-                      // Show the dialog
-                      return SuccessDialogBox(text: "Registration Successful");
-                    }
-                );
-*/
+                _showSuccessDialogModal(context);
 
 
 
@@ -499,49 +453,30 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
 
             }
 
-            else if(data.message == "The email has already been taken."){
+            else {
               WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
 
 
 
-                _showErrorDialogModal(context);
+                _showErrorDialogModal(context, data);
 
 
                 setState(() {
-                  _futureSignUp = null; // Reset _futureSignIn here
+                  _futureResetPassword = null; // Reset _futureSignIn here
                 });
 
 
 
-                Future.delayed(Duration(milliseconds: 700), () {
+/*                Future.delayed(Duration(milliseconds: 700), () {
 
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (context) => SignUpScreen()),
+                    MaterialPageRoute(builder: (context) => Sign()),
                         (route) => false,
                   );
 
 
-                });
-
-
-
-
-
-
-
-
-
-     /*           showDialog(
-                    barrierDismissible: true,
-                    context: context,
-                    builder: (BuildContext context) {
-                      // Show the dialog
-                      return ErrorDialogBox(text: "The email has already been taken.");
-                    }
-                );*/
-
-
+                });*/
 
 
 
@@ -588,7 +523,7 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
                   height: 20,
                 ),
 
-                Text("is setting up your account", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, height: 1.2),),
+                Text("is resetting your password", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, height: 1.2),),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -611,7 +546,26 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
     );
   }
 
-  void _showErrorDialogModal(BuildContext context) {
+  void _showErrorDialogModal(BuildContext context, ResetPasswordModel model) {
+    List<Widget> errorWidgets = [];
+    if (model.errors != null) {
+      if (model.errors!.email != null) {
+        model.errors!.email!.forEach((error) {
+          errorWidgets.add(Text(error));
+        });
+      }
+      if (model.errors!.password != null) {
+        model.errors!.password!.forEach((error) {
+          errorWidgets.add(Text(error));
+        });
+      }
+      if (model.errors!.token != null) {
+        model.errors!.token!.forEach((error) {
+          errorWidgets.add(Text(error));
+        });
+      }
+    }
+
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -623,24 +577,27 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
                 Row(
                   children: [
                     Image.asset("assets/images/rent_logo.png"),
-                    SizedBox(
-                      width: 10,
+                    SizedBox(width: 10),
+                    Text(
+                      "RentStraight",
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w500,
+                        height: 1.2,
+                      ),
                     ),
-
-                    Text("RentStraight", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w500, height: 1.2),),
-
-
                   ],
                 ),
-                SizedBox(
-                  height: 20,
+                SizedBox(height: 20),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: errorWidgets,
                 ),
-
-                Text("The email has already been taken.", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, height: 1.2),),
+                SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Icon(Icons.highlight_remove, color: Colors.red, size: 50,)
+                    Icon(Icons.highlight_remove, color: Colors.red, size: 50),
                   ],
                 ),
               ],
@@ -650,6 +607,7 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
       },
     );
   }
+
 
   void _showSuccessDialogModal(BuildContext context) {
     showModalBottomSheet(
@@ -682,7 +640,7 @@ class _PasswordScreenState extends State<PasswordScreen> with SingleTickerProvid
                   height: 20,
                 ),
 
-                Text("Account Setup Successful", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w500, height: 1.2),),
+                Text("Password Reset Successful", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w500, height: 1.2),),
                 SizedBox(
                   height: 20,
                 ),

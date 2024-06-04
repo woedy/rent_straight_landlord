@@ -3,13 +3,15 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'package:http/http.dart' as http;
+import 'package:rent_straight_landlord/Auth/Password/forgot_password.dart';
 import 'package:rent_straight_landlord/Auth/SignIn/model/sign_in_model.dart';
 import 'package:rent_straight_landlord/Auth/SignUp/sign_up_screen.dart';
 import 'package:rent_straight_landlord/Components/keyboard_utils.dart';
 import 'package:rent_straight_landlord/HomeScreen/home_screen.dart';
 import 'package:rent_straight_landlord/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 
 
 
@@ -38,7 +40,7 @@ Future<SignInModel> signInUser(String email, String password) async {
       await saveUserID(result['data']['user_id'].toString());
 
 
-      await saveUserData(result['data']);
+      //await saveUserData(result['data']);
 
 
 
@@ -327,17 +329,16 @@ class _SignInScreenState extends State<SignInScreen>
                                           onTap: () {
 
 
-                                        /*    if (_formKey.currentState!.validate()) {
+                                            if (_formKey.currentState!.validate()) {
                                               _formKey.currentState!.save();
                                               KeyboardUtil.hideKeyboard(context);
 
                                               _futureSignIn = signInUser(email!, password!);
-                                              //_futureSignIn = signInUser(user!, password!, platformType!);
 
 
-                                            }*/
+                                            }
 
-                                           Navigator.push(context, MaterialPageRoute(builder: (context) => HomeScreen()));
+                                           // Navigator.push(context, MaterialPageRoute(builder: (context) => HomeScreen()));
 
 
                                           },
@@ -364,6 +365,7 @@ class _SignInScreenState extends State<SignInScreen>
                                         InkWell(
                                           onTap: (){
 
+                                            Navigator.push(context, MaterialPageRoute(builder: (context) => ForgotPasswordScreen()));
 
 
                                           },
@@ -479,12 +481,6 @@ class _SignInScreenState extends State<SignInScreen>
                 _showSuccessDialogModal(context);
 
                 Future.delayed(Duration(milliseconds: 500), () {
-                  // Pop the dialog
-                  //Navigator.of(context).pop();
-
-                  // Navigate to the dashboard
-
-
 
 
                   Navigator.pushAndRemoveUntil(
@@ -493,18 +489,13 @@ class _SignInScreenState extends State<SignInScreen>
                         builder: (context) => HomeScreen()),
                         (route) => false,
                   );
-
                 });
-
-
-
-
               });
 
 
             }
 
-            else if (data.message == "These credentials do not match our records.") {
+            else if (data.message == "Invalid Request.") {
               String? errorKey = snapshot.data!.errors!.keys.firstWhere(
                     (key) => key == "password" || key == "email",
                 orElse: () => null!,
@@ -513,39 +504,13 @@ class _SignInScreenState extends State<SignInScreen>
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   Navigator.pop(context);
                   Navigator.pop(context);
-                 // Navigator.pop(context);
+                  Navigator.pop(context);
 
                   _showErrorDialogModal(context);
 
                   setState(() {
                     _futureSignIn = null; // Reset _futureSignIn here
                   });
-
-
-
-
-
-               /*   Future.delayed(Duration(milliseconds: 700), () {
-
-                    Navigator.pushReplacement(context,
-                        MaterialPageRoute(builder: (context) => SignInScreen())
-                    );
-
-                  });*/
-
-
-
- /*                 showDialog(
-                      barrierDismissible: true,
-                      context: context,
-                      builder: (BuildContext context){
-                        return ErrorDialogBox(text: 'These credentials do not match our records.',);
-                      }
-                  );*/
-
-
-
-
 
                 });
               }
@@ -555,24 +520,6 @@ class _SignInScreenState extends State<SignInScreen>
 
 
           }
-
-   /*       return Scaffold(
-            body: Container(
-              width: MediaQuery.of(context).size.width,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(
-                    height: 10,
-                  ),
-                  Text("Please Wait...")
-                ],
-              ),
-            ),
-          );
-*/
 
           return Scaffold(
             body: Container(),

@@ -3,25 +3,23 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:http/http.dart' as http;
-import 'package:rent_straight_landlord/Auth/SignUp/models/sign_up_model.dart';
-import 'package:rent_straight_landlord/Auth/SignUp/upload_photo.dart';
+import 'package:rent_straight_landlord/Auth/SignUp/models/verify_details.dart';
+import 'package:rent_straight_landlord/Auth/SignUp/password.dart';
 import 'package:rent_straight_landlord/Components/keyboard_utils.dart';
 import 'package:rent_straight_landlord/constants.dart';
 
 
-Future<SignUpModel> verifyDetails(String full_name, String username, String email, String contact_number, String password, String password_confirmation) async {
+Future<VerifyDetailsModel> verifyDetails(String username, String email, String contact_number) async {
 
   final response = await http.post(
-    Uri.parse(hostName + "register"),
+    Uri.parse(hostName + "verify/details"),
     headers: <String, String>{
       'Content-Type': 'application/json; charset=UTF-8',
       'Accept': 'application/json'
     },
     body: jsonEncode({
-      "full_name": full_name,
       "username": username,
       "email": email,
       "phone_number": contact_number,
@@ -29,19 +27,19 @@ Future<SignUpModel> verifyDetails(String full_name, String username, String emai
   );
 
 
-  if (response.statusCode == 201) {
+  if (response.statusCode == 200) {
     print(jsonDecode(response.body));
     final result = json.decode(response.body);
     if (result != null) {
 
     }
-    return SignUpModel.fromJson(jsonDecode(response.body));
+    return VerifyDetailsModel.fromJson(jsonDecode(response.body));
   } else if (response.statusCode == 422) {
     print(jsonDecode(response.body));
-    return SignUpModel.fromJson(jsonDecode(response.body));
+    return VerifyDetailsModel.fromJson(jsonDecode(response.body));
   }  else if (response.statusCode == 403) {
     print(jsonDecode(response.body));
-    return SignUpModel.fromJson(jsonDecode(response.body));
+    return VerifyDetailsModel.fromJson(jsonDecode(response.body));
   }  else {
     print(jsonDecode(response.body));
     throw Exception('Failed to Sign Up');
@@ -60,10 +58,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   final _formKey = GlobalKey<FormState>();
   var show_password = false;
 
-  //Future<SignInModel>? _futureSignIn;
   FocusNode focusNode = FocusNode();
 
-  Future<SignUpModel>? _futureVerifyDetail;
+  Future<VerifyDetailsModel>? _futureVerifyDetail;
   late AnimationController _controller;
 
 
@@ -437,23 +434,10 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                                               phone = _code.toString() + _number.toString();
                                               print(phone);
 
-
-                                              Navigator.of(context).push(MaterialPageRoute(builder: (BuildContext context) => UploadPhoto(
-                                                  full_name: full_name,
-                                                  username: username,
-                                                  email: email,
-                                                  contact_number: phone
-                                              )));
+                                              _futureVerifyDetail = verifyDetails(username!, email!, phone!);
 
 
-                                              /*     Navigator.of(context).push(MaterialPageRoute(builder: (BuildContext context) => PasswordScreen(
-                                            full_name: full_name,
-                                            username: username,
-                                            email: email,
-                                            contact_number: phone
-                                          )));
 
-*/
                                             }
 
                                           },
@@ -518,9 +502,8 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
   }
 
 
-
-  FutureBuilder<SignUpModel> buildFutureBuilder() {
-    return FutureBuilder<SignUpModel>(
+  FutureBuilder<VerifyDetailsModel> buildFutureBuilder() {
+    return FutureBuilder<VerifyDetailsModel>(
         future: _futureVerifyDetail,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -536,7 +519,9 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
             //print(data.data!.token!);
 
 
-            if(data.message == "Registration successful") {
+            if(data.message == "Validation successful") {
+
+              print("############3 Validated");
 
 
               WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -549,89 +534,51 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                 });
 
 
-       /*         Navigator.pushReplacement(
+                Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => EmailVerification(
-                    full_name: widget.full_name,
-                    username: widget.username,
-                    email: widget.email,
-                    contact_number: widget.contact_number,
+                  MaterialPageRoute(builder: (context) => PasswordScreen(
+                    full_name: full_name,
+
+                    username:username,
+                    email: email,
+                    contact_number: phone,
                   )),
-                );*/
-
-                /*   setState(() {
-                  _futureSignUp = null; // Reset _futureSignIn here
-                });
-*/
-
-
-
-
-/*
-                showDialog(
-                    barrierDismissible: true,
-                    context: context,
-                    builder: (BuildContext context) {
-                      // Show the dialog
-                      return SuccessDialogBox(text: "Registration Successful");
-                    }
                 );
-*/
-
 
 
 
 
               });
 
-            }
+            }  else if (data.message == "Invalid Request.") {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Navigator.pop(context);
+                Navigator.pop(context);
+                Navigator.pop(context);
 
-            else if(data.message == "The email has already been taken."){
-              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-
-
-
-                _showErrorDialogModal(context);
-
+                _showErrorDialogModal(context, data );
 
                 setState(() {
                   _futureVerifyDetail = null; // Reset _futureSignIn here
                 });
 
+              });
+
+            }
+
+            else {
+              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                Navigator.pop(context);
+                Navigator.pop(context);
+                Navigator.pop(context);
+
+                _showErrorDialogModal(context, data);
 
 
-                Future.delayed(Duration(milliseconds: 700), () {
 
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => SignUpScreen()),
-                        (route) => false,
-                  );
-
-
+                setState(() {
+                  _futureVerifyDetail = null; // Reset _futureSignIn here
                 });
-
-
-
-
-
-
-
-
-
-                /*           showDialog(
-                    barrierDismissible: true,
-                    context: context,
-                    builder: (BuildContext context) {
-                      // Show the dialog
-                      return ErrorDialogBox(text: "The email has already been taken.");
-                    }
-                );*/
-
-
-
-
-
               });
 
             }
@@ -648,6 +595,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
         }
     );
   }
+
 
 
 
@@ -676,7 +624,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                   height: 20,
                 ),
 
-                Text("is setting up your account", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, height: 1.2),),
+                Text("is verifying details", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, height: 1.2),),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -699,7 +647,26 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
     );
   }
 
-  void _showErrorDialogModal(BuildContext context) {
+  void _showErrorDialogModal(BuildContext context, VerifyDetailsModel model) {
+    List<Widget> errorWidgets = [];
+    if (model.errors != null) {
+      if (model.errors!.email != null) {
+        model.errors!.email!.forEach((error) {
+          errorWidgets.add(Text(error));
+        });
+      }
+      if (model.errors!.username != null) {
+        model.errors!.username!.forEach((error) {
+          errorWidgets.add(Text(error));
+        });
+      }
+      if (model.errors!.phoneNumber != null) {
+        model.errors!.phoneNumber!.forEach((error) {
+          errorWidgets.add(Text(error));
+        });
+      }
+    }
+
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -711,24 +678,27 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                 Row(
                   children: [
                     Image.asset("assets/images/rent_logo.png"),
-                    SizedBox(
-                      width: 10,
+                    SizedBox(width: 10),
+                    Text(
+                      "RentStraight",
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w500,
+                        height: 1.2,
+                      ),
                     ),
-
-                    Text("RentStraight", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w500, height: 1.2),),
-
-
                   ],
                 ),
-                SizedBox(
-                  height: 20,
+                SizedBox(height: 20),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: errorWidgets,
                 ),
-
-                Text("The email has already been taken.", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, height: 1.2),),
+                SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Icon(Icons.highlight_remove, color: Colors.red, size: 50,)
+                    Icon(Icons.highlight_remove, color: Colors.red, size: 50),
                   ],
                 ),
               ],
